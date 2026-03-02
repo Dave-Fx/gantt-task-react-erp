@@ -17,6 +17,26 @@ export interface Task {
   start: Date;
   end: Date;
   /**
+   * Optional actual execution window.
+   * If end is omitted, consumers may pass `new Date()` while task is running.
+   */
+  actualStart?: Date;
+  actualEnd?: Date;
+  /**
+   * Enables split rendering (plan top lane + actual bottom lane) even if no
+   * actual window is provided yet.
+   */
+  showActual?: boolean;
+  /**
+   * Optional dependency list for actual lane arrows.
+   * Falls back to `dependencies` when omitted.
+   */
+  actualDependencies?: string[];
+  /**
+   * Marks actual lane as in-progress when the execution window is open.
+   */
+  actualIsInProgress?: boolean;
+  /**
    * From 0 to 100
    */
   progress: number;
@@ -25,6 +45,17 @@ export interface Task {
     backgroundSelectedColor?: string;
     progressColor?: string;
     progressSelectedColor?: string;
+    actualColor?: string;
+    actualSelectedColor?: string;
+    actualInProgressColor?: string;
+    actualInProgressSelectedColor?: string;
+    actualStrokeColor?: string;
+    actualSelectedStrokeColor?: string;
+    actualInProgressStrokeColor?: string;
+    actualInProgressSelectedStrokeColor?: string;
+    actualArrowColor?: string;
+    actualArrowFallbackColor?: string;
+    actualArrowDashArray?: string;
   };
   isDisabled?: boolean;
   project?: string;

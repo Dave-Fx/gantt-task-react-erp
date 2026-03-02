@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { EventOption } from "../../types/public-types";
 import { BarTask } from "../../types/bar-task";
 import { Arrow } from "../other/arrow";
@@ -60,6 +60,64 @@ export const TaskGanttContent: React.FC<TaskGanttContentProps> = ({
   const [xStep, setXStep] = useState(0);
   const [initEventX1Delta, setInitEventX1Delta] = useState(0);
   const [isMoving, setIsMoving] = useState(false);
+  const actualArrowRows = useMemo(() => {
+    const DEFAULT_ACTUAL_ARROW_COLOR = "rgba(6, 95, 70, 0.98)";
+    const DEFAULT_ACTUAL_ARROW_FALLBACK_COLOR = "rgba(13, 148, 136, 0.8)";
+    const DEFAULT_ACTUAL_ARROW_DASH = "6 3";
+    const tasksById = new Map(tasks.map(task => [task.id, task]));
+    const seen = new Set<string>();
+
+    const rows: Array<{
+      key: string;
+      from: BarTask;
+      to: BarTask;
+      color: string;
+      dashArray: string;
+    }> = [];
+
+    tasks.forEach(task => {
+      if (task.type !== "task") return;
+
+      const dependencies = (
+        task.actualDependencies ?? task.dependencies ?? []
+      )
+        .map(value => String(value).trim())
+        .filter(Boolean);
+      dependencies.forEach(fromTaskId => {
+        const fromTask = tasksById.get(fromTaskId);
+        if (!fromTask || fromTask.type !== "task") return;
+        const hasAnyActualWindow = fromTask.actualHasWindow || task.actualHasWindow;
+        if (!hasAnyActualWindow) return;
+        const edgeKey = `${fromTask.id}->${task.id}`;
+        if (seen.has(edgeKey)) return;
+        seen.add(edgeKey);
+
+        const usesFallback = !(fromTask.actualHasWindow && task.actualHasWindow);
+        const color =
+          usesFallback
+            ? task.styles.actualArrowFallbackColor ||
+              fromTask.styles.actualArrowFallbackColor ||
+              DEFAULT_ACTUAL_ARROW_FALLBACK_COLOR
+            : task.styles.actualArrowColor ||
+              fromTask.styles.actualArrowColor ||
+              DEFAULT_ACTUAL_ARROW_COLOR;
+        const dashArray =
+          task.styles.actualArrowDashArray ||
+          fromTask.styles.actualArrowDashArray ||
+          DEFAULT_ACTUAL_ARROW_DASH;
+
+        rows.push({
+          key: `Actual arrow from ${edgeKey}`,
+          from: fromTask,
+          to: task,
+          color,
+          dashArray,
+        });
+      });
+    });
+
+    return rows;
+  }, [tasks]);
 
   // create xStep
   useEffect(() => {
@@ -296,6 +354,23 @@ export const TaskGanttContent: React.FC<TaskGanttContentProps> = ({
             />
           );
         })}
+      </g>
+      <g className="arrows actual-arrows">
+        {actualArrowRows.map(actualArrow => (
+          <Arrow
+            key={actualArrow.key}
+            taskFrom={actualArrow.from}
+            taskTo={actualArrow.to}
+            rowHeight={rowHeight}
+            taskHeight={taskHeight}
+            arrowIndent={arrowIndent}
+            rtl={rtl}
+            useActual={true}
+            color={actualArrow.color}
+            strokeWidth={2.25}
+            dashArray={actualArrow.dashArray}
+          />
+        ))}
       </g>
     </g>
   );

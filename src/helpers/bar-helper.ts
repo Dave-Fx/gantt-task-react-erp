@@ -173,6 +173,91 @@ const convertToBar = (
     rtl
   );
   const y = taskYCoordinate(index, rowHeight, taskHeight);
+  const canShowActual =
+    task.type === "task" &&
+    !!(
+      task.showActual ||
+      task.actualStart ||
+      task.actualEnd ||
+      (task.actualDependencies && task.actualDependencies.length > 0)
+    );
+  const laneGap = canShowActual
+    ? Math.max(2, Math.round(taskHeight * 0.08))
+    : 0;
+  const availableLaneHeight = canShowActual
+    ? Math.max(4, taskHeight - laneGap)
+    : taskHeight;
+  const computedActualHeight = canShowActual
+    ? Math.max(6, Math.round(availableLaneHeight * 0.48))
+    : taskHeight;
+  const actualHeight = canShowActual
+    ? Math.min(Math.max(2, availableLaneHeight - 2), computedActualHeight)
+    : computedActualHeight;
+  const planHeight = canShowActual
+    ? Math.max(2, availableLaneHeight - actualHeight)
+    : taskHeight;
+  const actualY = canShowActual ? y + planHeight + laneGap : y;
+  let actualX1: number | null = null;
+  let actualX2: number | null = null;
+  let actualHasWindow = false;
+  let actualIsInProgress = Boolean(task.actualIsInProgress);
+
+  const actualStartRaw =
+    task.actualStart instanceof Date
+      ? task.actualStart
+      : task.actualStart
+      ? new Date(task.actualStart)
+      : null;
+  const actualEndRaw =
+    task.actualEnd instanceof Date
+      ? task.actualEnd
+      : task.actualEnd
+      ? new Date(task.actualEnd)
+      : actualStartRaw && actualIsInProgress
+      ? new Date()
+      : null;
+  const actualStart =
+    actualStartRaw && Number.isFinite(actualStartRaw.getTime())
+      ? actualStartRaw
+      : null;
+  const actualEnd =
+    actualEndRaw && Number.isFinite(actualEndRaw.getTime()) ? actualEndRaw : null;
+
+  if (canShowActual && actualStart && actualEnd && actualEnd > actualStart) {
+    const firstDate = dates[0];
+    const lastDate = dates[dates.length - 1];
+    const minDate = firstDate < lastDate ? firstDate : lastDate;
+    const maxDate = firstDate > lastDate ? firstDate : lastDate;
+    const clampDateToVisibleRange = (value: Date) => {
+      if (value < minDate) return minDate;
+      if (value > maxDate) return maxDate;
+      return value;
+    };
+    const boundedStart = clampDateToVisibleRange(actualStart);
+    const boundedEnd = clampDateToVisibleRange(actualEnd);
+
+    if (rtl) {
+      actualX2 = taskXCoordinateRTL(boundedStart, dates, columnWidth);
+      actualX1 = taskXCoordinateRTL(boundedEnd, dates, columnWidth);
+    } else {
+      actualX1 = taskXCoordinate(boundedStart, dates, columnWidth);
+      actualX2 = taskXCoordinate(boundedEnd, dates, columnWidth);
+    }
+
+    if (
+      actualX1 !== null &&
+      actualX2 !== null &&
+      Number.isFinite(actualX1) &&
+      Number.isFinite(actualX2) &&
+      actualX2 > actualX1
+    ) {
+      actualHasWindow = true;
+    } else {
+      actualX1 = null;
+      actualX2 = null;
+    }
+  }
+
   const hideChildren = task.type === "project" ? task.hideChildren : undefined;
 
   const styles = {
@@ -180,6 +265,17 @@ const convertToBar = (
     backgroundSelectedColor: barBackgroundSelectedColor,
     progressColor: barProgressColor,
     progressSelectedColor: barProgressSelectedColor,
+    actualColor: "rgba(13, 148, 136, 0.75)",
+    actualSelectedColor: "rgba(15, 118, 110, 0.9)",
+    actualInProgressColor: "rgba(20, 184, 166, 0.82)",
+    actualInProgressSelectedColor: "rgba(13, 148, 136, 0.9)",
+    actualStrokeColor: "rgba(15, 118, 110, 0.95)",
+    actualSelectedStrokeColor: "rgba(19, 78, 74, 0.98)",
+    actualInProgressStrokeColor: "rgba(13, 148, 136, 0.95)",
+    actualInProgressSelectedStrokeColor: "rgba(15, 118, 110, 0.98)",
+    actualArrowColor: "rgba(6, 95, 70, 0.98)",
+    actualArrowFallbackColor: "rgba(13, 148, 136, 0.8)",
+    actualArrowDashArray: "6 3",
     ...task.styles,
   };
   return {
@@ -191,6 +287,13 @@ const convertToBar = (
     index,
     progressX,
     progressWidth,
+    actualX1,
+    actualX2,
+    actualY,
+    actualHeight,
+    actualHasWindow,
+    actualIsInProgress,
+    showActual: canShowActual,
     barCornerRadius,
     handleWidth,
     hideChildren,
@@ -235,6 +338,13 @@ const convertToMilestone = (
     index,
     progressX: 0,
     progressWidth: 0,
+    actualX1: null,
+    actualX2: null,
+    actualY: y,
+    actualHeight: rotatedHeight,
+    actualHasWindow: false,
+    actualIsInProgress: false,
+    showActual: false,
     barCornerRadius,
     handleWidth,
     typeInternal: task.type,
