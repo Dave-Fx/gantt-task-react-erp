@@ -8,14 +8,20 @@
   opacity: 1;
 }
 
+.barWrapper:hover .barBackground {
+  filter: brightness(1.06);
+}
+
 .barHandle {
-  fill: #ddd;
+  fill: rgba(255, 255, 255, 0.7);
   cursor: ew-resize;
   opacity: 0;
   visibility: hidden;
+  transition: opacity 0.15s ease;
 }
 
 .barBackground {
   user-select: none;
   stroke-width: 0;
+  transition: filter 0.15s ease;
 }

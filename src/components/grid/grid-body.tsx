@@ -60,7 +60,9 @@ export const GridBody: React.FC<GridBodyProps> = ({
   const now = new Date();
   let tickX = 0;
   const ticks: ReactChild[] = [];
-  let today: ReactChild = <rect />;
+  const weekendRects: ReactChild[] = [];
+  let todayHighlight: ReactChild = <rect />;
+  let todayLineX: number | null = null;
   for (let i = 0; i < dates.length; i++) {
     const date = dates[i];
     ticks.push(
@@ -73,6 +75,23 @@ export const GridBody: React.FC<GridBodyProps> = ({
         className={styles.gridTick}
       />
     );
+
+    // Weekend shading
+    const dayOfWeek = date.getDay();
+    if (dayOfWeek === 0 || dayOfWeek === 6) {
+      weekendRects.push(
+        <rect
+          key={`weekend-${date.getTime()}`}
+          x={tickX}
+          y={0}
+          width={columnWidth}
+          height={y}
+          fill="rgba(148, 163, 184, 0.08)"
+          pointerEvents="none"
+        />
+      );
+    }
+
     if (
       (i + 1 !== dates.length &&
         date.getTime() < now.getTime() &&
@@ -87,7 +106,7 @@ export const GridBody: React.FC<GridBodyProps> = ({
           "millisecond"
         ).getTime() >= now.getTime())
     ) {
-      today = (
+      todayHighlight = (
         <rect
           x={tickX}
           y={0}
@@ -96,6 +115,12 @@ export const GridBody: React.FC<GridBodyProps> = ({
           fill={todayColor}
         />
       );
+      // Calculate exact position within the column for the today line
+      const nextDate = i + 1 < dates.length ? dates[i + 1] : addToDate(date, date.getTime() - dates[Math.max(0, i - 1)].getTime(), "millisecond");
+      const totalMs = nextDate.getTime() - date.getTime();
+      const elapsedMs = now.getTime() - date.getTime();
+      const fraction = totalMs > 0 ? Math.max(0, Math.min(1, elapsedMs / totalMs)) : 0;
+      todayLineX = tickX + fraction * columnWidth;
     }
     // rtl for today
     if (
@@ -104,7 +129,7 @@ export const GridBody: React.FC<GridBodyProps> = ({
       date.getTime() >= now.getTime() &&
       dates[i + 1].getTime() < now.getTime()
     ) {
-      today = (
+      todayHighlight = (
         <rect
           x={tickX + columnWidth}
           y={0}
@@ -113,15 +138,36 @@ export const GridBody: React.FC<GridBodyProps> = ({
           fill={todayColor}
         />
       );
+      todayLineX = tickX + columnWidth;
     }
     tickX += columnWidth;
   }
   return (
     <g className="gridBody">
       <g className="rows">{gridRows}</g>
+      <g className="weekends">{weekendRects}</g>
       <g className="rowLines">{rowLines}</g>
       <g className="ticks">{ticks}</g>
-      <g className="today">{today}</g>
+      <g className="today">{todayHighlight}</g>
+      {todayLineX !== null && (
+        <g className="todayLine">
+          <line
+            x1={todayLineX}
+            y1={0}
+            x2={todayLineX}
+            y2={y}
+            stroke="#ef4444"
+            strokeWidth={2}
+            strokeDasharray="none"
+            pointerEvents="none"
+          />
+          <polygon
+            points={`${todayLineX - 5},0 ${todayLineX + 5},0 ${todayLineX},7`}
+            fill="#ef4444"
+            pointerEvents="none"
+          />
+        </g>
+      )}
     </g>
   );
 };

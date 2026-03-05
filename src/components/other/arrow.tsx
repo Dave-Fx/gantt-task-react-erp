@@ -209,33 +209,56 @@ const drawActualPathAndTriangle = (
   rtl: boolean
 ) => {
   const points = resolveLanePoints(taskFrom, taskTo, taskHeight, true, rtl);
-  const fromX = points.taskFromX;
-  const toX = points.taskToX;
-  const fromY = points.taskFromY;
-  const toY = points.taskToY;
-  const detourMagnitude = Math.max(arrowIndent * 1.5, rowHeight * 0.35);
 
   if (rtl) {
-    const directElbowX = fromX - arrowIndent;
-    const needsDetour = toX >= directElbowX;
-    const detourX = needsDetour
-      ? Math.max(fromX, toX) + detourMagnitude
-      : directElbowX;
-    const path = `M ${fromX} ${fromY} H ${detourX} V ${toY} H ${toX}`;
-    const trianglePoints = `${toX},${toY} 
-  ${toX + 5},${toY + 5} 
-  ${toX + 5},${toY - 5}`;
+    const indexCompare = taskFrom.index > taskTo.index ? -1 : 1;
+    const taskToY = points.taskToY;
+    const taskFromY = points.taskFromY;
+    const taskFromEndX = points.taskFromX;
+    const taskToEndX = points.taskToX;
+    const taskFromEndPosition = taskFromEndX - arrowIndent * 2;
+    const taskFromHorizontalOffsetValue =
+      taskFromEndPosition > taskToEndX ? "" : `H ${taskToEndX + arrowIndent}`;
+    const taskToHorizontalOffsetValue =
+      taskFromEndPosition < taskToEndX
+        ? -arrowIndent
+        : taskToEndX - taskFromEndX + arrowIndent;
+
+    const path = `M ${taskFromEndX} ${taskFromY} 
+    h ${-arrowIndent} 
+    v ${(indexCompare * rowHeight) / 2} 
+    ${taskFromHorizontalOffsetValue}
+    V ${taskToY} 
+    h ${taskToHorizontalOffsetValue}`;
+
+    const trianglePoints = `${taskToEndX},${taskToY} 
+    ${taskToEndX + 5},${taskToY + 5} 
+    ${taskToEndX + 5},${taskToY - 5}`;
     return [path, trianglePoints];
   }
 
-  const directElbowX = fromX + arrowIndent;
-  const needsDetour = toX <= directElbowX;
-  const detourX = needsDetour
-    ? Math.min(fromX, toX) - detourMagnitude
-    : directElbowX;
-  const path = `M ${fromX} ${fromY} H ${detourX} V ${toY} H ${toX}`;
-  const trianglePoints = `${toX},${toY} 
-  ${toX - 5},${toY - 5} 
-  ${toX - 5},${toY + 5}`;
+  const indexCompare = taskFrom.index > taskTo.index ? -1 : 1;
+  const taskToY = points.taskToY;
+  const taskFromY = points.taskFromY;
+  const taskFromEndX = points.taskFromX;
+  const taskToStartX = points.taskToX;
+  const taskFromEndPosition = taskFromEndX + arrowIndent * 2;
+  const taskFromHorizontalOffsetValue =
+    taskFromEndPosition < taskToStartX ? "" : `H ${taskToStartX - arrowIndent}`;
+  const taskToHorizontalOffsetValue =
+    taskFromEndPosition > taskToStartX
+      ? arrowIndent
+      : taskToStartX - taskFromEndX - arrowIndent;
+
+  const path = `M ${taskFromEndX} ${taskFromY} 
+  h ${arrowIndent} 
+  v ${(indexCompare * rowHeight) / 2} 
+  ${taskFromHorizontalOffsetValue}
+  V ${taskToY} 
+  h ${taskToHorizontalOffsetValue}`;
+
+  const trianglePoints = `${taskToStartX},${taskToY} 
+  ${taskToStartX - 5},${taskToY - 5} 
+  ${taskToStartX - 5},${taskToY + 5}`;
   return [path, trianglePoints];
 };
